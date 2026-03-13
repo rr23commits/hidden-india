@@ -286,9 +286,3 @@ The schema includes 10 carefully researched hidden destinations:
 10. **Pondicherry Countryside, Puducherry** — French-Tamil fusion & Auroville
 
 ---
-
-## 📞 Support
-
-Built with ❤️ for incredible Bharat. Explore responsibly, respect local cultures!
-
-*Jai Hind! 🇮🇳*
