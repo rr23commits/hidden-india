@@ -1,152 +1,205 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import './NearbyServices.css';
 
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+});
+
 const SERVICE_TYPES = [
-  { id: 'hospital', label: 'Hospitals', icon: '+', color: '#ef4444', query: 'hospital' },
-  { id: 'lodging', label: 'Hotels', icon: 'H', color: '#8b5cf6', query: 'hotel' },
-  { id: 'restaurant', label: 'Restaurants', icon: 'R', color: '#f59e0b', query: 'restaurant' },
-  { id: 'police', label: 'Police', icon: 'P', color: '#3b82f6', query: 'police station' },
-  { id: 'atm', label: 'ATMs', icon: '$', color: '#10b981', query: 'ATM' },
-  { id: 'pharmacy', label: 'Pharmacy', icon: 'Rx', color: '#06b6d4', query: 'pharmacy' }
+  { id: 'Hospital', label: 'Hospitals' },
+  { id: 'Hotel', label: 'Hotels' },
+  { id: 'Restaurant', label: 'Restaurants' },
+  { id: 'Police', label: 'Police' },
+  { id: 'Atm', label: 'ATMs' },
+  { id: 'Pharmacy', label: 'Pharmacy' },
 ];
 
 const NearbyServices = () => {
   const routeLocation = useLocation();
+
+  const queryParams = new URLSearchParams(routeLocation.search);
+  const urlLat = queryParams.get('lat');
+  const urlLng = queryParams.get('lng');
+  const urlName = queryParams.get('name');
+
   const passedState = routeLocation.state;
-  
+
   const mapRef = useRef(null);
   const mapInstance = useRef(null);
   const markersRef = useRef([]);
+
   const [userLocation, setUserLocation] = useState(
-    passedState ? { lat: parseFloat(passedState.lat), lng: parseFloat(passedState.lng) } : null
+    urlLat && urlLng
+      ? { lat: parseFloat(urlLat), lng: parseFloat(urlLng) }
+      : passedState
+      ? { lat: parseFloat(passedState.lat), lng: parseFloat(passedState.lng) }
+      : null
   );
-  const [locationName, setLocationName] = useState(passedState?.name || '');
+
+  const [locationName, setLocationName] = useState(
+    urlName ? decodeURIComponent(urlName) : passedState?.name || ''
+  );
+
+  const [manualInput, setManualInput] = useState('');
   const [selectedType, setSelectedType] = useState('hospital');
   const [places, setPlaces] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [mapLoaded, setMapLoaded] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [error, setError] = useState('');
 
-  const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
+  const getDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
 
-  // Load Google Maps script
-  useEffect(() => {
-    if (window.google) { setMapLoaded(true); return; }
-    if (!apiKey) { setError('Google Maps API key not configured.'); return; }
-    
-    const script = document.createElement('script');
-    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
-    script.async = true;
-    script.onload = () => setMapLoaded(true);
-    script.onerror = () => setError('Failed to load Google Maps.');
-    document.head.appendChild(script);
-  }, [apiKey]);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(lat1 * Math.PI / 180) *
+      Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) ** 2;
 
-  const initMap = useCallback((center) => {
-    if (!mapRef.current || !window.google) return;
-    mapInstance.current = new window.google.maps.Map(mapRef.current, {
-      center,
-      zoom: 14,
-      styles: [
-        { elementType: 'geometry', stylers: [{ color: '#fdf6ec' }] },
-        { elementType: 'labels.text.fill', stylers: [{ color: '#523735' }] },
-        { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#f5e8d0' }] },
-        { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#c9d8e8' }] }
-      ]
-    });
-  }, []);
-
-  const searchNearby = useCallback((lat, lng, type) => {
-    if (!mapInstance.current || !window.google) return;
-    
-    setLoading(true);
-    setPlaces([]);
-    
-    // Clear markers
-    markersRef.current.forEach(m => m.setMap(null));
-    markersRef.current = [];
-
-    const service = new window.google.maps.places.PlacesService(mapInstance.current);
-    const serviceConfig = SERVICE_TYPES.find(s => s.id === type);
-    
-    service.nearbySearch({
-      location: { lat, lng },
-      radius: 5000,
-      keyword: serviceConfig.query
-    }, (results, status) => {
-      setLoading(false);
-      if (status === window.google.maps.places.PlacesServiceStatus.OK) {
-        setPlaces(results.slice(0, 10));
-        
-        // Add markers
-        results.slice(0, 10).forEach((place, i) => {
-          const marker = new window.google.maps.Marker({
-            position: place.geometry.location,
-            map: mapInstance.current,
-            title: place.name,
-            label: { text: serviceConfig.icon, fontSize: '20px' },
-            icon: {
-              path: window.google.maps.SymbolPath.CIRCLE,
-              fillColor: serviceConfig.color,
-              fillOpacity: 0.9,
-              strokeColor: 'white',
-              strokeWeight: 2,
-              scale: 12
-            }
-          });
-
-          const infoWindow = new window.google.maps.InfoWindow({
-            content: `<div style="font-family:DM Sans,sans-serif;padding:4px"><strong>${place.name}</strong><br/><small>${place.vicinity || ''}</small></div>`
-          });
-
-          marker.addListener('click', () => infoWindow.open(mapInstance.current, marker));
-          markersRef.current.push(marker);
-        });
-      } else {
-        setPlaces([]);
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    if (mapLoaded && userLocation) {
-      initMap(userLocation);
-      setTimeout(() => searchNearby(userLocation.lat, userLocation.lng, selectedType), 500);
-    }
-  }, [mapLoaded, userLocation, initMap, searchNearby, selectedType]);
-
-  const detectLocation = () => {
-    setError('');
-    if (!navigator.geolocation) {
-      setError('Geolocation not supported by your browser.');
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setUserLocation(loc);
-        setLocationName('Your Current Location');
-        if (mapInstance.current) {
-          mapInstance.current.setCenter(loc);
-          searchNearby(loc.lat, loc.lng, selectedType);
-        }
-      },
-      () => setError('Location access denied. Please enable location services.')
-    );
+    return (R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))).toFixed(2);
   };
 
-  const handleTypeChange = (type) => {
-    setSelectedType(type);
-    if (userLocation) {
-      searchNearby(userLocation.lat, userLocation.lng, type);
+  useEffect(() => {
+    if (!mapRef.current || mapInstance.current) return;
+
+    mapInstance.current = L.map(mapRef.current).setView([20.5937, 78.9629], 5);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+    }).addTo(mapInstance.current);
+  }, []);
+
+  useEffect(() => {
+    if (!userLocation) return;
+
+    const timer = setTimeout(() => {
+      mapInstance.current?.setView([userLocation.lat, userLocation.lng], 15);
+      searchNearby(userLocation.lat, userLocation.lng, selectedType);
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [userLocation, selectedType]);
+
+  const searchNearby = async (lat, lng, type) => {
+    setLoading(true);
+    setPlaces([]);
+    setError('');
+
+    markersRef.current.forEach(m => m.remove());
+    markersRef.current = [];
+
+    const query = `
+    [out:json][timeout:25];
+    node(around:3000,${lat},${lng});
+    out;
+    `;
+
+    try {
+      const res = await fetch('https://overpass.kumi.systems/api/interpreter', {
+        method: 'POST',
+        body: query,
+      });
+
+      const data = await res.json();
+
+      let results = data.elements.filter(place => {
+        const tag = place.tags || {};
+
+        if (type === 'restaurant') return ['restaurant', 'cafe', 'fast_food'].includes(tag.amenity);
+        if (type === 'hotel') return ['hotel', 'guest_house'].includes(tag.tourism);
+        if (type === 'hospital') return tag.amenity === 'hospital';
+        if (type === 'pharmacy') return tag.amenity === 'pharmacy' || tag.shop === 'chemist';
+        if (type === 'atm') return tag.amenity === 'atm';
+        if (type === 'police') return tag.amenity === 'police';
+
+        return false;
+      });
+
+      results = results
+        .map(place => ({
+          ...place,
+          distance: getDistance(lat, lng, place.lat, place.lon),
+        }))
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 10);
+
+      setPlaces(results);
+
+      results.forEach(place => {
+        const marker = L.marker([place.lat, place.lon])
+          .addTo(mapInstance.current)
+          .bindPopup(`<strong>${place.tags?.name || 'Place'}</strong><br/>${place.distance} km away`);
+
+        markersRef.current.push(marker);
+      });
+
+      L.circleMarker([lat, lng], {
+        radius: 10,
+        fillColor: '#C2603A',
+        color: 'white',
+        weight: 2,
+        fillOpacity: 1,
+      }).addTo(mapInstance.current);
+
+    } catch (err) {
+      console.error(err);
+      setError('Too many requests. Please wait a few seconds.');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleManualSearch = async (e) => {
+    e.preventDefault();
+    if (!manualInput.trim()) return;
+
+    setSearching(true);
+    setError('');
+
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(manualInput)}&format=json&limit=1`
+      );
+
+      const data = await res.json();
+      if (data.length === 0) {
+        setError('Location not found');
+        return;
+      }
+
+      const { lat, lon, display_name } = data[0];
+
+      setUserLocation({ lat: parseFloat(lat), lng: parseFloat(lon) });
+      setLocationName(display_name.split(',')[0]);
+
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const detectLocation = () => {
+    navigator.geolocation.getCurrentPosition(pos => {
+      setUserLocation({
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+      });
+      setLocationName('Your Location');
+    });
   };
 
   const openDirections = (place) => {
-    if (!userLocation) return;
-    const url = `https://www.google.com/maps/dir/${userLocation.lat},${userLocation.lng}/${place.geometry.location.lat()},${place.geometry.location.lng()}`;
-    window.open(url, '_blank');
+    window.open(
+      `https://www.openstreetmap.org/directions?from=${userLocation.lat},${userLocation.lng}&to=${place.lat},${place.lon}`,
+      '_blank'
+    );
   };
 
   return (
@@ -154,107 +207,87 @@ const NearbyServices = () => {
       <div className="nearby-header">
         <div className="container">
           <h1>Nearby Services</h1>
-          <p>Find hospitals, hotels, restaurants and emergency services near you</p>
+
+          <form className="manual-search-form" onSubmit={handleManualSearch}>
+            <input
+              type="text"
+              placeholder="Enter a location"
+              value={manualInput}
+              onChange={e => setManualInput(e.target.value)}
+            />
+            <button type="submit">{searching ? 'Searching...' : 'Search'}</button>
+          </form>
+
           <div className="location-bar">
-            <div className="current-location">
-              <span className="location-dot">—</span>
-              <span>{locationName || 'No location selected'}</span>
-            </div>
+            <span>{locationName || 'No location selected'}</span>
             <button className="detect-btn" onClick={detectLocation}>
               Detect My Location
             </button>
           </div>
+
           {error && <div className="error-banner">{error}</div>}
         </div>
       </div>
 
       <div className="nearby-body">
-        {/* Service Type Filters */}
         <div className="service-filters">
           {SERVICE_TYPES.map(type => (
             <button
               key={type.id}
               className={`service-filter-btn ${selectedType === type.id ? 'active' : ''}`}
-              onClick={() => handleTypeChange(type.id)}
-              style={{ '--color': type.color }}
+              onClick={() => setSelectedType(type.id)}
             >
-              <span>{type.icon}</span>
-              <span>{type.label}</span>
+              {type.label}
             </button>
           ))}
         </div>
 
         <div className="nearby-content">
-          {/* Map */}
           <div className="map-container">
-            {!userLocation && (
-              <div className="map-placeholder">
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '16px', opacity: 0.3 }}>Map</div>
-                  <h3>Select a Location</h3>
-                  <p>Click "Detect My Location" or visit a destination page to see nearby services</p>
-                  <button className="detect-btn" style={{ marginTop: '20px' }} onClick={detectLocation}>
-                    Detect My Location
-                  </button>
-                  {!apiKey && (
-                    <p style={{ marginTop: '16px', color: 'var(--text-light)', fontSize: '0.8rem' }}>
-                      Note: Add REACT_APP_GOOGLE_MAPS_API_KEY to enable maps
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-            <div ref={mapRef} className="google-map" style={{ display: userLocation ? 'block' : 'none' }}></div>
+            <div ref={mapRef} style={{ width: '100%', height: '100%' }} />
           </div>
 
-          {/* Results */}
           <div className="results-panel">
-            <div className="results-panel-header">
-              <h3>
-                {SERVICE_TYPES.find(s => s.id === selectedType)?.icon}
-                {' '}{SERVICE_TYPES.find(s => s.id === selectedType)?.label}
-              </h3>
-              <span className="places-count">{loading ? '...' : `${places.length} found`}</span>
-            </div>
+            <h3>{selectedType}</h3>
 
             {loading ? (
-              <div style={{ textAlign: 'center', padding: '40px' }}>
-                <div className="spinner" style={{ margin: '0 auto' }}></div>
-                <p style={{ marginTop: '12px', color: 'var(--text-mid)', fontSize: '0.85rem' }}>Searching nearby...</p>
-              </div>
-            ) : !userLocation ? (
-              <div className="no-location-msg">
-                <p>Select a location to see nearby services</p>
-              </div>
+              <p>Loading...</p>
             ) : places.length === 0 ? (
-              <div className="no-places">
-                <p>No {SERVICE_TYPES.find(s => s.id === selectedType)?.label.toLowerCase()} found within 5km</p>
-              </div>
+              <p>No results found</p>
             ) : (
               <div className="places-list">
-                {places.map((place, i) => (
-                  <div key={i} className="place-card">
-                    <div className="place-rank">{i + 1}</div>
-                    <div className="place-info">
-                      <h4>{place.name}</h4>
-                      <p className="place-address">{place.vicinity}</p>
-                      {place.rating && (
-                        <div className="place-rating">
-                          ⭐ {place.rating} ({place.user_ratings_total} reviews)
-                        </div>
-                      )}
-                      {place.opening_hours && (
-                        <span className={`place-status ${place.opening_hours.open_now ? 'open' : 'closed'}`}>
-                          {place.opening_hours.open_now ? '● Open Now' : '● Closed'}
-                        </span>
-                      )}
-                    </div>
-                    <button className="directions-btn" onClick={() => openDirections(place)}>
-                      Directions →
-                    </button>
-                  </div>
-                ))}
-              </div>
+  {places.map((place, i) => (
+    <div key={i} className="place-card">
+      
+      {/* 🔥 rank circle */}
+      <div className="place-rank">{i + 1}</div>
+
+      <div className="place-info">
+        <h4>{place.tags?.name || 'Unnamed Place'}</h4>
+
+        {/* 🔥 distance */}
+        <div className="place-address">
+          {place.distance} km away
+        </div>
+
+        {/* optional address */}
+        {place.tags?.['addr:street'] && (
+          <div className="place-address">
+            {place.tags['addr:street']}
+          </div>
+        )}
+      </div>
+
+      {/* 🔥 styled button */}
+      <button
+        className="directions-btn"
+        onClick={() => openDirections(place)}
+      >
+        Directions
+      </button>
+    </div>
+  ))}
+</div>
             )}
           </div>
         </div>

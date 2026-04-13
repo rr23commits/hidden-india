@@ -1,5 +1,18 @@
-node_modules/
+# env files
 .env
 .env.local
-build/
+.env.*
+
+# API keys / secrets
+config.js
+secrets.json
+
+# node
+node_modules/
+
+# python
+__pycache__/
+*.pyc
+
+# misc
 .DS_Store

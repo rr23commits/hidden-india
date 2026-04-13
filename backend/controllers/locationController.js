@@ -13,9 +13,16 @@ const getAllLocations = async (req, res) => {
     }
 
     if (search) {
-      query += ' AND (name LIKE ? OR description LIKE ? OR tags LIKE ?)';
-      const searchTerm = `%${search}%`;
-      params.push(searchTerm, searchTerm, searchTerm);
+      query += ` AND (
+        name LIKE ? OR 
+        description LIKE ? OR 
+        tags LIKE ? OR 
+        state LIKE ? OR
+        culture LIKE ? OR
+        food LIKE ?
+      )`;
+      const s = `%${search}%`;
+      params.push(s, s, s, s, s, s);
     }
 
     query += ' ORDER BY rating DESC LIMIT ? OFFSET ?';
@@ -23,14 +30,13 @@ const getAllLocations = async (req, res) => {
 
     const [locations] = await db.query(query, params);
 
-    // Get total count
     let countQuery = 'SELECT COUNT(*) as total FROM locations WHERE 1=1';
     const countParams = [];
     if (state) { countQuery += ' AND state = ?'; countParams.push(state); }
     if (search) {
-      countQuery += ' AND (name LIKE ? OR description LIKE ? OR tags LIKE ?)';
+      countQuery += ` AND (name LIKE ? OR description LIKE ? OR tags LIKE ? OR state LIKE ? OR culture LIKE ? OR food LIKE ?)`;
       const s = `%${search}%`;
-      countParams.push(s, s, s);
+      countParams.push(s, s, s, s, s, s);
     }
 
     const [countResult] = await db.query(countQuery, countParams);

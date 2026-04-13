@@ -132,6 +132,21 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
 }
+.external-card {
+  border: 1px solid #ddd;
+  padding: 16px;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.external-card h4 {
+  margin-bottom: 6px;
+}
+
+.external-card p {
+  font-size: 0.85rem;
+  color: #666;
+}
 
 @keyframes shimmer {
   0% { background-position: -200% 0; }

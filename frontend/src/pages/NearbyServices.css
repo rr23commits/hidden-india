@@ -138,3 +138,63 @@
   .map-container { position: static; height: 280px; }
   .nearby-body { padding: 24px 20px; }
 }
+.manual-search-form {
+  display: flex;
+  gap: 0;
+  max-width: 560px;
+  margin-bottom: 16px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.manual-search-form input {
+  flex: 1;
+  padding: 13px 16px;
+  border: none;
+  font-size: 0.875rem;
+  outline: none;
+  background: rgba(255,255,255,0.95);
+  color: var(--ink);
+}
+
+.manual-search-form button {
+  background: var(--terra);
+  color: white;
+  border: none;
+  padding: 13px 22px;
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.manual-search-form button:hover { background: var(--terra-dark); }
+.manual-search-form button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.place-phone {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--terra);
+  font-weight: 600;
+  margin-bottom: 3px;
+  text-decoration: none;
+}
+
+.place-phone:hover { text-decoration: underline; }
+
+.place-hours {
+  font-size: 0.72rem;
+  color: var(--stone);
+  margin-bottom: 3px;
+}
+
+.place-website {
+  display: block;
+  font-size: 0.72rem;
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.place-website:hover { text-decoration: underline; }
