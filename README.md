@@ -1,8 +1,8 @@
-# 🇮🇳 Hidden India — AI-Powered Smart Tourism Platform
+# Hidden India — AI-Powered Smart Tourism Platform
 
 > Discover India's most underrated, culturally rich destinations with the power of AI.
 
-## 🌟 Features
+## Features
 
 - **Destination Discovery** — 10+ curated hidden destinations with rich cultural data
 - **AI Travel Guide (Priya)** — GPT-powered chatbot for travel Q&A
@@ -13,7 +13,7 @@
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 hidden-india/
@@ -37,7 +37,7 @@ hidden-india/
 
 ---
 
-## 🛠️ Prerequisites
+## Prerequisites
 
 - **Node.js** v18+ 
 - **MySQL** v8+
@@ -47,7 +47,7 @@ hidden-india/
 
 ---
 
-## 🚀 Setup Instructions
+## Setup Instructions
 
 ### Step 1: Clone and Setup Database
 
@@ -139,7 +139,7 @@ Frontend runs on: `http://localhost:3000`
 
 ---
 
-## 🗺️ Google Maps API Setup
+## Google Maps API Setup
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select existing
@@ -153,7 +153,7 @@ Frontend runs on: `http://localhost:3000`
 
 ---
 
-## 🤖 OpenAI Setup
+## OpenAI Setup
 
 1. Go to [OpenAI Platform](https://platform.openai.com/api-keys)
 2. Create a new API key
@@ -162,7 +162,7 @@ Frontend runs on: `http://localhost:3000`
 
 ---
 
-## 📡 API Endpoints
+## API Endpoints
 
 ### Authentication
 | Method | Endpoint | Description |
@@ -192,7 +192,7 @@ Frontend runs on: `http://localhost:3000`
 
 ---
 
-## 🚢 Deployment
+## Deployment
 
 ### Frontend → Vercel
 
@@ -228,7 +228,7 @@ For MySQL, use **Railway** or **PlanetScale**:
 
 ---
 
-## 🎯 Key Design Decisions
+## Key Design Decisions
 
 - **JWT tokens** stored in localStorage with 7-day expiry
 - **Community chat** uses 5-second polling (can be upgraded to WebSockets)
@@ -238,7 +238,7 @@ For MySQL, use **Railway** or **PlanetScale**:
 
 ---
 
-## 📱 Responsive Design
+## Responsive Design
 
 The app is fully responsive:
 - **Desktop**: Full sidebar + main content layouts
@@ -247,7 +247,7 @@ The app is fully responsive:
 
 ---
 
-## 🔧 Environment Variables Summary
+## Environment Variables Summary
 
 ### Backend (.env)
 | Variable | Description | Required |
@@ -270,7 +270,7 @@ The app is fully responsive:
 
 ---
 
-## 🌏 Seeded Destinations
+## Seeded Destinations
 
 The schema includes 10 carefully researched hidden destinations:
 
